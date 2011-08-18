@@ -33,9 +33,12 @@
 "{"		return '{'
 "}"		return '}'
 "="		return '='
+"<"		return '<'
+">"		return '>'
 "def"	return 'DEF'
 "var"	return 'VAR'
 "if"	return 'IF'
+"return"	return 'RETURN'
 [a-zA-Z_]+([0-9a-zA-Z_])*	return 'IDENT'
 
 
@@ -123,12 +126,36 @@ if_statement
 		}
 	;
 	
+return_statement
+	:	RETURN expression_statement {
+			$$ = new ASTNode('Return', $2, null);
+		}
+	|	RETURN {
+			$$ = new ASTNode('Return', null, null);
+		}
+	|	RETURN '!' expression_list ';' {
+			$$ = new ASTNode('AsyncReturn', { values: $3 }, null);
+		}		
+	|	RETURN '!' {
+			$$ = new ASTNode('AsyncReturn', { values: null }, null);
+		}
+	;
+	
 init_variable
 	:	VAR ident_list '=' expression_statement {
 			$$ = new ASTNode('InitVariable', { idents: $2 }, $4);
 		}
 	;
 	
+assign_variable
+	:	IDENT '=' expression_statement {
+			$$ = new ASTNode('AssignVariable', { idents: [ $1 ] }, $3);
+		}
+	|	'<' ident_list '>' '=' expression_statement {
+			$$ = new ASTNode('AssignVariable', { idents: $2 }, $5);
+		}
+	;
+
 ident_list
 	:	IDENT { $$ = [ $1 ]; }
 	|	ident_list ',' IDENT {
@@ -141,12 +168,6 @@ ident_list
 			}
 		}
 	;
-	
-assign_variable
-	:	IDENT '=' expression_statement {
-			$$ = new ASTNode('AssignVariable', $1, $3);
-		}
-	;
 
 function_declaration
 	:	DEF IDENT '(' ')' '{' function_body '}' {
@@ -156,6 +177,14 @@ function_declaration
 	|	DEF IDENT '(' function_formal_parameters ')' '{' function_body '}' {
 			var funcInfo = { formalParams: $4, body: $7 };
 			$$ = new ASTNode('FunctionDef', $2, funcInfo);
+		}
+	|	DEF IDENT '!' '(' ')' '{' function_body '}' {
+			var funcInfo = { formalParams: null, body: $7 };
+			$$ = new ASTNode('AsyncFunctionDef', $2, funcInfo);
+		}
+	|	DEF IDENT '!' '(' function_formal_parameters ')' '{' function_body '}' {
+			var funcInfo = { formalParams: $5, body: $8 };
+			$$ = new ASTNode('AsyncFunctionDef', $2, funcInfo);
 		}
 	;
 
@@ -167,6 +196,22 @@ function_formal_parameters
 function_body
 	:	statement_list
 	|	block
+	|	return_statement { $$ = $1; }
+	;
+
+expression_list
+	:	e {
+			$$ = [ $1 ];
+		}
+	|	expression_list ',' e {
+			if ($1 instanceof Array) {
+				$1.push($3);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $3 ];
+			}
+		}
 	;
 	
 expression_statement
@@ -232,8 +277,7 @@ atom
 			$$ = yytext;
 		}
 	|	LIST_LITERAL {
-			console.log('derp');
-			$$ = '\'' + yytext + '\'';
+			$$ = yytext;
 		}
 	|	'(' e ')' { $$ = $2; }
 	;
