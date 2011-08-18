@@ -1,16 +1,6 @@
 /* code for maintaining state and stuff to construct an AST */
 %{
-	function IfBlock(expr, block) {
-		this.expr = expr;
-		this.block = block;
-	}
-	
-	function FunctionDeclaration(ident, code) {
-		this.ident = ident;
-		this.code = code;
-	}
-	
-	function ASTNode(root, left, right) {
+	var ASTNode = module.exports.ASTNode = function(root, left, right) {
 		this.root = root;
 		this.left = left;
 		this.right = right;
@@ -35,6 +25,7 @@
 
 ";"		return ';'
 "."		return '.'
+","		return ','
 "["		return '['
 "]"		return ']'
 "{"		return '{'
@@ -63,10 +54,10 @@
 
 program
     :	block_list EOF {
-			console.log(JSON.stringify($1, null, 2));
+			module.exports.parseResult = $1;
 		}
     |	statement_list EOF {
-			console.log(JSON.stringify($1, null, 2));
+			module.exports.parseResult = $1;
 		}
     ;
 
@@ -124,8 +115,18 @@ if_statement
 
 function_declaration
 	:	DEF IDENT '(' ')' '{' function_body '}' {
-			$$ = new ASTNode('FunctionDef', $2, $6);
+			var funcInfo = { formalParams: null, body: $6 };
+			$$ = new ASTNode('FunctionDef', $2, funcInfo);
 		}
+	|	DEF IDENT '(' function_formal_parameters ')' '{' function_body '}' {
+			var funcInfo = { formalParams: $4, body: $7 };
+			$$ = new ASTNode('FunctionDef', $2, funcInfo);
+		}
+	;
+
+function_formal_parameters
+	:	IDENT { $$ = $1; }
+	|	function_formal_parameters ',' IDENT { $$ = $1 + ',' + $3; }
 	;
 	
 function_body
@@ -164,7 +165,17 @@ postfix_expression
 	:	atom { $$ = $1; }
 	|	postfix_expression '.' IDENT { $$ = new ASTNode('Property', $1, $3); }
 	|	postfix_expression '[' e ']' { $$ = new ASTNode('Array', $1, $3); }
-	|	postfix_expression '(' ')' { $$ = new ASTNode('FunctionCall', $1, null); }
+	|	postfix_expression '(' ')' {
+			$$ = new ASTNode('FunctionCall', $1, null);
+		}
+	|	postfix_expression '(' function_call_parameters ')' {
+			$$ = new ASTNode('FunctionCall', $1, $3);
+		}
+	;
+
+function_call_parameters
+	:	e { $$ = $1 }
+	|	e ',' function_call_parameters { $$ = $1 + ',' + $3; }
 	;
 
 atom
