@@ -1,18 +1,27 @@
 var jadeParser = require('./jade-parser');
 var ASTNode = require('./jade-parser').ASTNode;
 
+//Stuff to deal with the asynchronous wrapping.
+//asyncLevel tells us how many nested levels in we are.
+//currAsyncCode is the generated callback text, used to check for
+//variable assignment.
 var asyncLevel = 0;
 var currAsyncCode = '';
 
+//ends the current async wrapping and resets it.
+//called at the end of blocks or when forced by -- operator.
 function handleAsyncWrapping() {
 	var wrapping = '';
 	for (var c = asyncLevel; c > 0; c--) {
 		wrapping += '});';
 	}
 	
+	asyncLevel = 0;
 	currAsyncCode = '';
 	return wrapping;
 }
+
+/**** Define how to handle the AST ****/
 
 var ASTParser = {
 	"Expression": function(left, right) {
@@ -77,6 +86,10 @@ var ASTParser = {
 		}
 		
 		return currAsyncCode;
+	},
+	
+	"EndAsync": function() {
+			return handleAsyncWrapping();
 	},
 	
 	"If": function(left, right) {
@@ -172,6 +185,8 @@ var ASTParser = {
 	}
 };
 
+/**** This is where compilation takes place ****/
+
 function handle(node) {
 	//handling an individual node of the AST tree.
 	if (node instanceof ASTNode) {
@@ -207,7 +222,8 @@ function handle(node) {
 	}
 }
 
-jadeParser.parser.parse('def x!() { return! 1; } var y = x!(); console.log(y);');
-var program = jadeParser.parseResult;
-//eval(handle(program) + handleAsyncWrapping());
-console.log(handle(program) + handleAsyncWrapping());
+module.exports.compile = function(text) {
+	jadeParser.parser.parse(text);
+	var program = jadeParser.parseResult;
+	return handle(program) + handleAsyncWrapping();
+}

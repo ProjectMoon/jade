@@ -35,6 +35,7 @@
 "="		return '='
 "<"		return '<'
 ">"		return '>'
+":-"	return ':-'
 "def"	return 'DEF'
 "var"	return 'VAR'
 "if"	return 'IF'
@@ -84,6 +85,7 @@ statement
 	|	if_statement {
 			$$ = $1;
 		}
+	|	end_async_statement
 	;
 	
 statement_list
@@ -125,7 +127,13 @@ if_statement
 			$$ = new ASTNode('If', $3, $5);
 		}
 	;
-	
+
+end_async_statement
+	:	':-' {
+			$$ = new ASTNode('EndAsync', null, null);
+		}
+	;
+
 return_statement
 	:	RETURN expression_statement {
 			$$ = new ASTNode('Return', $2, null);
