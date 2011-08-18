@@ -17,7 +17,7 @@ function handleAsyncWrapping() {
 var ASTParser = {
 	"Expression": function(left, right) {
 		if (left != null) {
-			return '' + left;
+			return '(' + left + ')';
 		}
 		else {
 			return '';
