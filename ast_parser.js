@@ -10,10 +10,20 @@ function handleAsyncWrapping() {
 		wrapping += '});';
 	}
 	
+	currAsyncCode = '';
 	return wrapping;
 }
 
 var ASTParser = {
+	"Expression": function(left, right) {
+		if (left != null) {
+			return '' + left;
+		}
+		else {
+			return '';
+		}
+	},
+	
 	"+": function(left, right) {
 		return left + '+' + right;
 	},
@@ -66,10 +76,29 @@ var ASTParser = {
 		if (right === currAsyncCode) {
 			//these variables are the result of an unwrapped async
 			//call.
-			return right + 'var ' + left + '=arguments[0]';
+			var code = right;
+			
+			for (var c = 0; c < left.idents.length; c++) {
+				code += 'var ' + left.idents[c] + '=arguments[' + c + '];';
+			}
+			
+			return code;
 		}
 		else {
-			return 'var ' + left + '=' + right;
+			if (left.idents.length === 1) {
+				//this is a regular assignment.
+				return 'var ' + left.idents[0] + '=' + right;
+			}
+			else {
+				//destructuring assignment.
+				var code = 'var __r = ' + right + ';';
+				for (var c = 0; c < left.idents.length; c++) {
+					var ident = left.idents[c];
+					code += 'var ' + ident + '=__r[' + c + '];';
+				}
+				
+				return code;
+			}
 		}
 	},
 	
@@ -113,7 +142,7 @@ function handle(node) {
 	}
 }
 
-jadeParser.parser.parse('def x(cb) { cb(1); } var y = x!(); console.log(y);');
+jadeParser.parser.parse('1;');
 var program = jadeParser.parseResult;
 //eval(handle(program) + handleAsyncWrapping());
 console.log(handle(program) + handleAsyncWrapping());

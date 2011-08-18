@@ -22,6 +22,8 @@
 "%"                   return '%'
 "("                   return '('
 ")"                   return ')'
+\".*\"				  return 'STRING_LITERAL'
+\[.+(\,.)*\]			  return 'LIST_LITERAL'
 
 ";"		return ';'
 "."		return '.'
@@ -122,8 +124,21 @@ if_statement
 	;
 	
 init_variable
-	:	VAR IDENT '=' expression_statement {
-			$$ = new ASTNode('InitVariable', $2, $4);
+	:	VAR ident_list '=' expression_statement {
+			$$ = new ASTNode('InitVariable', { idents: $2 }, $4);
+		}
+	;
+	
+ident_list
+	:	IDENT { $$ = [ $1 ]; }
+	|	ident_list ',' IDENT {
+			if ($1 instanceof Array) {
+				$1.push($3);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $3 ];
+			}
 		}
 	;
 	
@@ -155,8 +170,10 @@ function_body
 	;
 	
 expression_statement
-	:	e ';' { $$ = $1; }
-	|	';' { $$ = undefined; }
+	:	e ';' { 
+			$$ = new ASTNode('Expression', $1, null);
+		}
+	|	';' { $$ = new ASTNode('Expression', null, null); }
 	;
 
 e
@@ -210,6 +227,13 @@ atom
 		}
 	|	IDENT {
 			$$ = $1;
+		}
+	|	STRING_LITERAL {
+			$$ = yytext;
+		}
+	|	LIST_LITERAL {
+			console.log('derp');
+			$$ = '\'' + yytext + '\'';
 		}
 	|	'(' e ')' { $$ = $2; }
 	;
