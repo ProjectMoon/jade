@@ -34,11 +34,14 @@
 ")"                   return ')'
 
 ";"		return ';'
+"."		return '.'
+"["		return '['
+"]"		return ']'
 "{"		return '{'
 "}"		return '}'
 "def"	return 'DEF'
 "if"	return 'IF'
-[A-z|a-z]+([A-z|a-z|0-9])*	return 'IDENT'
+[a-zA-Z_]+([0-9a-zA-Z_])*	return 'IDENT'
 
 
 <<EOF>>               return 'EOF'
@@ -136,10 +139,7 @@ expression_statement
 	;
 
 e
-    :	'(' e ')' {
-			$$ = $2;
-		}
-	|	e '+' e {
+    :	e '+' e {
 			$$ = new ASTNode('+', $1, $3);
 		}
     |	e '-' e {
@@ -157,11 +157,22 @@ e
     |	'-' e %prec UMINUS {
 			$$ = new ASTNode('*', -1, $2);
 		}
-    |	NUMBER {
+	|	postfix_expression
+    ;
+    
+postfix_expression
+	:	atom { $$ = $1; }
+	|	postfix_expression '.' IDENT { $$ = new ASTNode('Property', $1, $3); }
+	|	postfix_expression '[' e ']' { $$ = new ASTNode('Array', $1, $3); }
+	|	postfix_expression '(' ')' { $$ = new ASTNode('FunctionCall', $1, null); }
+	;
+
+atom
+	:	NUMBER {
 			$$ = Number($1);
 		}
 	|	IDENT {
 			$$ = $1;
 		}
-    ;
-
+	|	'(' e ')' { $$ = $2; }
+	;
