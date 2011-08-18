@@ -2,6 +2,7 @@ var jadeParser = require('./jade-parser');
 var ASTNode = require('./jade-parser').ASTNode;
 
 var asyncLevel = 0;
+var currAsyncCode = '';
 
 function handleAsyncWrapping() {
 	var wrapping = '';
@@ -47,16 +48,33 @@ var ASTParser = {
 	"AsyncCall": function(left, right) {
 		asyncLevel++;
 		if (right != null) {
-			return left + '(' + right + ', function() {';
+			currAsyncCode = left + '(' + right + ', function() {';
 		}
 		else {
-			return left + '(function() {';
+			currAsyncCode = left + '(function() {';
 		}
+		
+		return currAsyncCode;
 	},
 	
 	"If": function(left, right) {
 		right += handleAsyncWrapping();
 		return 'if (' + left + ') {' + right + '}';
+	},
+	
+	"InitVariable": function(left, right) {
+		if (right === currAsyncCode) {
+			//these variables are the result of an unwrapped async
+			//call.
+			return right + 'var ' + left + '=arguments[0]';
+		}
+		else {
+			return 'var ' + left + '=' + right;
+		}
+	},
+	
+	"AssignVariable": function(left, right) {
+		return left + '=' + right;
 	}
 };
 
@@ -95,6 +113,7 @@ function handle(node) {
 	}
 }
 
-console.log(jadeParser.parser.parse('def x(cb) { cb(); } x!(); console.log(1);'));
+jadeParser.parser.parse('def x(cb) { cb(1); } var y = x!(); console.log(y);');
 var program = jadeParser.parseResult;
+//eval(handle(program) + handleAsyncWrapping());
 console.log(handle(program) + handleAsyncWrapping());

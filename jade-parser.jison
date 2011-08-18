@@ -30,7 +30,9 @@
 "]"		return ']'
 "{"		return '{'
 "}"		return '}'
+"="		return '='
 "def"	return 'DEF'
+"var"	return 'VAR'
 "if"	return 'IF'
 [a-zA-Z_]+([0-9a-zA-Z_])*	return 'IDENT'
 
@@ -63,6 +65,12 @@ program
 
 statement
 	:	expression_statement {
+			$$ = $1;
+		}
+	|	init_variable {
+			$$ = $1;
+		}
+	|	assign_variable {
 			$$ = $1;
 		}
 	|	function_declaration {
@@ -110,6 +118,18 @@ block_list
 if_statement
 	:	IF '(' e ')' block {
 			$$ = new ASTNode('If', $3, $5);
+		}
+	;
+	
+init_variable
+	:	VAR IDENT '=' expression_statement {
+			$$ = new ASTNode('InitVariable', $2, $4);
+		}
+	;
+	
+assign_variable
+	:	IDENT '=' expression_statement {
+			$$ = new ASTNode('AssignVariable', $1, $3);
 		}
 	;
 
