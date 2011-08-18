@@ -171,6 +171,12 @@ postfix_expression
 	|	postfix_expression '(' function_call_parameters ')' {
 			$$ = new ASTNode('FunctionCall', $1, $3);
 		}
+	|	postfix_expression '!' '(' ')' {
+			$$ = new ASTNode('AsyncCall', $1, null);
+		}
+	|	postfix_expression '!' '(' function_call_parameters ')' {
+			$$ = new ASTNode('AsyncCall', $1, $3);
+		}
 	;
 
 function_call_parameters

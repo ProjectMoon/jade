@@ -1,6 +1,17 @@
 var jadeParser = require('./jade-parser');
 var ASTNode = require('./jade-parser').ASTNode;
 
+var asyncLevel = 0;
+
+function handleAsyncWrapping() {
+	var wrapping = '';
+	for (var c = asyncLevel; c > 0; c--) {
+		wrapping += '});';
+	}
+	
+	return wrapping;
+}
+
 var ASTParser = {
 	"+": function(left, right) {
 		return left + '+' + right;
@@ -17,9 +28,11 @@ var ASTParser = {
 	"FunctionDef": function(left, right) {
 		var formalParams = right.formalParams;
 		if (formalParams == null) formalParams = '';
-		var body = handle(right.body); //this is an AST in itself.
 		
-		return 'var ' + left + '=function(' + formalParams + '){' + body + '}';
+		var body = handle(right.body); //this is an AST in itself.
+		body += handleAsyncWrapping();
+		
+		return 'var ' + left + '=function ' + left + '(' + formalParams + '){' + body + '}';
 	},
 	
 	"FunctionCall": function(left, right) {
@@ -31,7 +44,18 @@ var ASTParser = {
 		}
 	},
 	
+	"AsyncCall": function(left, right) {
+		asyncLevel++;
+		if (right != null) {
+			return left + '(' + right + ', function() {';
+		}
+		else {
+			return left + '(function() {';
+		}
+	},
+	
 	"If": function(left, right) {
+		right += handleAsyncWrapping();
 		return 'if (' + left + ') {' + right + '}';
 	}
 };
@@ -71,6 +95,6 @@ function handle(node) {
 	}
 }
 
-console.log(jadeParser.parser.parse('def x(a) { console.log(a); } x(1);'));
+console.log(jadeParser.parser.parse('def x(cb) { cb(); } x!(); console.log(1);'));
 var program = jadeParser.parseResult;
-console.log(handle(program));
+console.log(handle(program) + handleAsyncWrapping());
