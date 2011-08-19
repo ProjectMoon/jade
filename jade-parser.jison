@@ -39,6 +39,7 @@
 "def"	return 'DEF'
 "var"	return 'VAR'
 "if"	return 'IF'
+"::"	return 'PROTOTYPE'
 "return"	return 'RETURN'
 [a-zA-Z_]+([0-9a-zA-Z_])*	return 'IDENT'
 
@@ -254,6 +255,7 @@ e
 postfix_expression
 	:	atom { $$ = $1; }
 	|	postfix_expression '.' IDENT { $$ = new ASTNode('Property', $1, $3); }
+	|	postfix_expression PROTOTYPE IDENT { $$ = new ASTNode('Prototype', $1, $3); }
 	|	postfix_expression '[' e ']' { $$ = new ASTNode('Array', $1, $3); }
 	|	postfix_expression '(' ')' {
 			$$ = new ASTNode('FunctionCall', $1, null);

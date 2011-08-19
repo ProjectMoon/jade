@@ -45,6 +45,10 @@ var ASTParser = {
 		return left + '.' + right;
 	},
 	
+	"Prototype": function(left, right) {
+		return left + '.prototype.' + right;
+	},
+	
 	"FunctionDef": function(left, right) {
 		var formalParams = right.formalParams;
 		if (formalParams == null) formalParams = '';
