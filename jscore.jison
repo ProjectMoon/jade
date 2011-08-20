@@ -583,34 +583,56 @@ EqualityExpr
     ;
 
 EqualityExprNoIn
-    : RelationalExprNoIn
-    | EqualityExprNoIn EQEQ RelationalExprNoIn
-    | EqualityExprNoIn NE RelationalExprNoIn
-    | EqualityExprNoIn STREQ RelationalExprNoIn
-    | EqualityExprNoIn STRNEQ RelationalExprNoIn
+    :	RelationalExprNoIn
+    |	EqualityExprNoIn EQEQ RelationalExprNoIn {
+			$$ = new ASTNode('==', $1, $3);
+		}
+    |	EqualityExprNoIn NE RelationalExprNoIn {
+			$$ = new ASTNode('!=', $1, $3);
+		}
+    |	EqualityExprNoIn STREQ RelationalExprNoIn {
+			$$ = new ASTNode('===', $1, $3);
+		}
+    |	EqualityExprNoIn STRNEQ RelationalExprNoIn {
+			$$ = new ASTNode('!==', $1, $3);
+		}
     ;
 
 EqualityExprNoBF
-    : RelationalExprNoBF
-    | EqualityExprNoBF EQEQ RelationalExpr
-    | EqualityExprNoBF NE RelationalExpr
-    | EqualityExprNoBF STREQ RelationalExpr
-    | EqualityExprNoBF STRNEQ RelationalExpr
+    :	RelationalExprNoBF
+    |	EqualityExprNoBF EQEQ RelationalExpr {
+			$$ = new ASTNode('==', $1, $3);
+		}
+    |	EqualityExprNoBF NE RelationalExpr {
+			$$ = new ASTNode('!=', $1, $3);
+		}
+    |	EqualityExprNoBF STREQ RelationalExpr {
+			$$ = new ASTNode('===', $1, $3);
+		}
+    |	EqualityExprNoBF STRNEQ RelationalExpr {
+			$$ = new ASTNode('!==', $1, $3);
+		}
     ;
 
 BitwiseANDExpr
-    : EqualityExpr
-    | BitwiseANDExpr '&' EqualityExpr
+    :	EqualityExpr
+    |	BitwiseANDExpr '&' EqualityExpr {
+			$$ = new ASTNode('&', $1, $3);
+		}
     ;
 
 BitwiseANDExprNoIn
-    : EqualityExprNoIn
-    | BitwiseANDExprNoIn '&' EqualityExprNoIn
+    :	EqualityExprNoIn
+    |	BitwiseANDExprNoIn '&' EqualityExprNoIn {
+			$$ = new ASTNode('&', $1, $3);
+		}
     ;
 
 BitwiseANDExprNoBF
-    : EqualityExprNoBF
-    | BitwiseANDExprNoBF '&' EqualityExpr
+    :	EqualityExprNoBF
+    |	BitwiseANDExprNoBF '&' EqualityExpr {
+			$$ = new ASTNode('&', $1, $3);
+		}
     ;
 
 BitwiseXORExpr
@@ -619,274 +641,490 @@ BitwiseXORExpr
     ;
 
 BitwiseXORExprNoIn
-    : BitwiseANDExprNoIn
-    | BitwiseXORExprNoIn '^' BitwiseANDExprNoIn
+    :	BitwiseANDExprNoIn
+    |	BitwiseXORExprNoIn '^' BitwiseANDExprNoIn {
+			$$ = new ASTNode('^', $1, $3);
+		}
     ;
 
 BitwiseXORExprNoBF
-    : BitwiseANDExprNoBF
-    | BitwiseXORExprNoBF '^' BitwiseANDExpr
+    :	BitwiseANDExprNoBF
+    |	BitwiseXORExprNoBF '^' BitwiseANDExpr {
+			$$ = new ASTNode('^', $1, $3);
+		}
     ;
 
 BitwiseORExpr
-    : BitwiseXORExpr
-    | BitwiseORExpr '|' BitwiseXORExpr
+    :	BitwiseXORExpr
+    |	BitwiseORExpr '|' BitwiseXORExpr {
+			$$ = new ASTNode('|', $1, $3);
+		}
     ;
 
 BitwiseORExprNoIn
-    : BitwiseXORExprNoIn
-    | BitwiseORExprNoIn '|' BitwiseXORExprNoIn
+    :	BitwiseXORExprNoIn
+    |	BitwiseORExprNoIn '|' BitwiseXORExprNoIn {
+			$$ = new ASTNode('|', $1, $3);
+		}
     ;
 
 BitwiseORExprNoBF
-    : BitwiseXORExprNoBF
-    | BitwiseORExprNoBF '|' BitwiseXORExpr
+    :	BitwiseXORExprNoBF
+    |	BitwiseORExprNoBF '|' BitwiseXORExpr {
+			$$ = new ASTNode('|', $1, $3);
+		}
     ;
 
 LogicalANDExpr
-    : BitwiseORExpr
-    | LogicalANDExpr AND BitwiseORExpr
+    :	BitwiseORExpr
+    |	LogicalANDExpr AND BitwiseORExpr {
+			$$ = new ASTNode('&&', $1, $3);
+		}
     ;
 
 LogicalANDExprNoIn
-    : BitwiseORExprNoIn
-    | LogicalANDExprNoIn AND BitwiseORExprNoIn
+    :	BitwiseORExprNoIn
+    |	LogicalANDExprNoIn AND BitwiseORExprNoIn {
+			$$ = new ASTNode('&&', $1, $3);
+		}
     ;
 
 LogicalANDExprNoBF
-    : BitwiseORExprNoBF
-    | LogicalANDExprNoBF AND BitwiseORExpr
+    :	BitwiseORExprNoBF
+    |	LogicalANDExprNoBF AND BitwiseORExpr {
+			$$ = new ASTNode('&&', $1, $3);
+		}
     ;
 
 LogicalORExpr
-    : LogicalANDExpr
-    | LogicalORExpr OR LogicalANDExpr
+    :	LogicalANDExpr
+    |	LogicalORExpr OR LogicalANDExpr {
+			$$ = new ASTNode('||', $1, $3);
+		}
     ;
 
 LogicalORExprNoIn
-    : LogicalANDExprNoIn
-    | LogicalORExprNoIn OR LogicalANDExprNoIn
+    :	LogicalANDExprNoIn
+    |	LogicalORExprNoIn OR LogicalANDExprNoIn {
+			$$ = new ASTNode('||', $1, $3);
+		}
     ;
 
 LogicalORExprNoBF
-    : LogicalANDExprNoBF
-    | LogicalORExprNoBF OR LogicalANDExpr
+    :	LogicalANDExprNoBF
+    |	LogicalORExprNoBF OR LogicalANDExpr {
+			$$ = new ASTNode('||', $1, $3);
+		}
     ;
 
 ConditionalExpr
-    : LogicalORExpr
-    | LogicalORExpr '?' AssignmentExpr ':' AssignmentExpr
+    :	LogicalORExpr
+    |	LogicalORExpr '?' AssignmentExpr ':' AssignmentExpr {
+			$$ = new ASTNode('?:', $1, { success: $3, failure: $5 });
+		}
     ;
 
 ConditionalExprNoIn
-    : LogicalORExprNoIn
-    | LogicalORExprNoIn '?' AssignmentExprNoIn ':' AssignmentExprNoIn
+    :	LogicalORExprNoIn
+    |	LogicalORExprNoIn '?' AssignmentExprNoIn ':' AssignmentExprNoIn {
+			$$ = new ASTNode('?:', $1, { success: $3, failure: $5 });
+		}
     ;
 
 ConditionalExprNoBF
-    : LogicalORExprNoBF
-    | LogicalORExprNoBF '?' AssignmentExpr ':' AssignmentExpr
+    :	LogicalORExprNoBF
+    |	LogicalORExprNoBF '?' AssignmentExpr ':' AssignmentExpr {
+			$$ = new ASTNode('?:', $1, { success: $3, failure: $5 });
+		}
     ;
 
 AssignmentExpr
-    : ConditionalExpr
-    | LeftHandSideExpr AssignmentOperator AssignmentExpr
+    :	ConditionalExpr
+    |	LeftHandSideExpr AssignmentOperator AssignmentExpr {
+			$$ = new ASTNode($2, $1, $3);
+		}
     ;
 
 AssignmentExprNoIn
-    : ConditionalExprNoIn
-    | LeftHandSideExpr AssignmentOperator AssignmentExprNoIn
+    :	ConditionalExprNoIn
+    |	LeftHandSideExpr AssignmentOperator AssignmentExprNoIn {
+			$$ = new ASTNode($2, $1, $3);
+		}
     ;
 
 AssignmentExprNoBF
-    : ConditionalExprNoBF
-    | LeftHandSideExprNoBF AssignmentOperator AssignmentExpr
+    :	ConditionalExprNoBF
+    |	LeftHandSideExprNoBF AssignmentOperator AssignmentExpr {
+			$$ = new ASTNode($2, $1, $3);
+		}
     ;
 
 AssignmentOperator
-    : '='
-    | PLUSEQUAL
-    | MINUSEQUAL
-    | MULTEQUAL
-    | DIVEQUAL
-    | LSHIFTEQUAL
-    | RSHIFTEQUAL
-    | URSHIFTEQUAL
-    | ANDEQUAL
-    | XOREQUAL
-    | OREQUAL
-    | MODEQUAL
+    :	'='
+    |	PLUSEQUAL
+    |	MINUSEQUAL
+    |	MULTEQUAL
+    |	DIVEQUAL
+    |	LSHIFTEQUAL
+    |	RSHIFTEQUAL
+    |	URSHIFTEQUAL
+    |	ANDEQUAL
+    |	XOREQUAL
+    |	OREQUAL
+    |	MODEQUAL
     ;
 
 Expr
-    : AssignmentExpr
-    | Expr ',' AssignmentExpr
+    :	AssignmentExpr
+    |	Expr ',' AssignmentExpr {
+			SS = new ASTNode(',', $1, $3);
+		}
     ;
 
 ExprNoIn
-    : AssignmentExprNoIn
-    | ExprNoIn ',' AssignmentExprNoIn
+    :	AssignmentExprNoIn
+    |	ExprNoIn ',' AssignmentExprNoIn {
+			SS = new ASTNode(',', $1, $3);
+		}
     ;
 
 ExprNoBF
-    : AssignmentExprNoBF
-    | ExprNoBF ',' AssignmentExpr
+    :	AssignmentExprNoBF
+    |	ExprNoBF ',' AssignmentExpr {
+			SS = new ASTNode(',', $1, $3);
+		}
     ;
 
 Statement
-    : Block
-    | VariableStatement
-    | ConstStatement
-    | FunctionDeclaration
-    | EmptyStatement
-    | ExprStatement
-    | IfStatement
-    | IterationStatement
-    | ContinueStatement
-    | BreakStatement
-    | ReturnStatement
-    | WithStatement
-    | SwitchStatement
-    | LabelledStatement
-    | ThrowStatement
-    | TryStatement
-    | DebuggerStatement
+    :	Block
+    |	VariableStatement
+    |	ConstStatement
+    |	FunctionDeclaration
+    |	EmptyStatement
+    |	ExprStatement
+    |	IfStatement
+    |	IterationStatement
+    |	ContinueStatement
+    |	BreakStatement
+    |	ReturnStatement
+    |	WithStatement
+    |	SwitchStatement
+    |	LabelledStatement
+    |	ThrowStatement
+    |	TryStatement
+    |	DebuggerStatement
     ;
 
 Block
-    : OPENBRACE CLOSEBRACE
-    | OPENBRACE SourceElements CLOSEBRACE
+    :	OPENBRACE CLOSEBRACE {
+			$$ = new ASTNode('Block', null, null);
+		}
+    |	OPENBRACE SourceElements CLOSEBRACE {
+			$$ = new ASTNode('Block', $2, null);
+		}
     ;
 
 VariableStatement
-    : VAR VariableDeclarationList ';'
-    | VAR VariableDeclarationList error
+    :	VAR VariableDeclarationList ';' {
+			$$ = new ASTNode('VariableDeclaration', $2, null);
+		}
+    |	VAR VariableDeclarationList error {
+			$$ = new ASTNode('VariableDeclaration', $2, null);
+		}
     ;
 
 VariableDeclarationList
-    : IDENT
-    | IDENT Initializer
-    | VariableDeclarationList ',' IDENT
-    | VariableDeclarationList ',' IDENT Initializer
+    :	IDENT {
+			$$ = [ $1 ];
+		}
+    |	IDENT Initializer {
+			$$ = new ASTNode('VariableAssignment', $1, $2);
+		}
+    |	VariableDeclarationList ',' IDENT {
+			if ($1 instanceof Array) {
+				$1.push($3);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $3 ];
+			}
+		}
+    |	VariableDeclarationList ',' IDENT Initializer {
+			var init = new ASTNode('VariableAssignment', $3, $4);
+			if ($1 instanceof Array) {
+				$1.push(init);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, init ];
+			}
+		}
     ;
 
 VariableDeclarationListNoIn
-    : IDENT
-    | IDENT InitializerNoIn
-    | VariableDeclarationListNoIn ',' IDENT
-    | VariableDeclarationListNoIn ',' IDENT InitializerNoIn
+    :	IDENT {
+			$$ = [ $1 ];
+		}
+    |	IDENT InitializerNoIn {
+			$$ = new ASTNode('VariableAssignment', $1, $2);
+		}
+    |	VariableDeclarationListNoIn ',' IDENT {
+			if ($1 instanceof Array) {
+				$1.push($3);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $3 ];
+			}
+		}
+    |	VariableDeclarationListNoIn ',' IDENT InitializerNoIn {
+			var init = new ASTNode('VariableAssignment', $3, $4);
+			if ($1 instanceof Array) {
+				$1.push(init);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, init ];
+			}
+		}
     ;
-
+    
 ConstStatement
-    : CONSTTOKEN ConstDeclarationList ';'
-    | CONSTTOKEN ConstDeclarationList error
+    :	CONSTTOKEN ConstDeclarationList ';' {
+			$$ = new ASTNode('Const', $2, null);
+		}
+    |	CONSTTOKEN ConstDeclarationList error {
+			$$ = new ASTNode('Const', $2, null);
+		}
     ;
 
 ConstDeclarationList
-    : ConstDeclaration
-    | ConstDeclarationList ',' ConstDeclaration
+    :	ConstDeclaration {
+			$$ = [ $1 ];
+		}
+    |	ConstDeclarationList ',' ConstDeclaration {
+			if ($1 instanceof Array) {
+				$1.push($3);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $3 ];
+			}
+		}
     ;
 
 ConstDeclaration
-    : IDENT
-    | IDENT Initializer
+    :	IDENT
+    |	IDENT Initializer {
+			$$ = new ASTNode('ConstAssignment', $1, $2);
+		}
     ;
 
 Initializer
-    : '=' AssignmentExpr
+    :	'=' AssignmentExpr {
+			$$ = $2;
+		}
     ;
 
 InitializerNoIn
-    : '=' AssignmentExprNoIn
+    :	'=' AssignmentExprNoIn {
+			$$ = $2;
+		}
     ;
 
 EmptyStatement
-    : ';'
+    :	';' { $$ = ''; }
     ;
 
 ExprStatement
-    : ExprNoBF ';'
-    | ExprNoBF error
+    :	ExprNoBF ';'
+    |	ExprNoBF error
     ;
 
 IfStatement
-    : IF '(' Expr ')' Statement %prec IF_WITHOUT_ELSE
-    | IF '(' Expr ')' Statement ELSE Statement
+    :	IF '(' Expr ')' Statement %prec IF_WITHOUT_ELSE {
+			$$ = new ASTNode('If', $3, $5);
+		}
+    |	IF '(' Expr ')' Statement ELSE Statement {
+			$$ = new ASTNode('IfElse', $3, { success: $5, failure: $7 });
+		}
     ;
 
 IterationStatement
-    : DO Statement WHILE '(' Expr ')' ';'
-    | DO Statement WHILE '(' Expr ')' error
-    | WHILE '(' Expr ')' Statement
-    | FOR '(' ExprNoInOpt ';' ExprOpt ';' ExprOpt ')' Statement
-    | FOR '(' VAR VariableDeclarationListNoIn ';' ExprOpt ';' ExprOpt ')' Statement
-    | FOR '(' LeftHandSideExpr INTOKEN Expr ')' Statement
-    | FOR '(' VAR IDENT INTOKEN Expr ')' Statement
-    | FOR '(' VAR IDENT InitializerNoIn INTOKEN Expr ')' Statement
+    :	DO Statement WHILE '(' Expr ')' ';' {
+			$$ = new ASTNode('DoWhile', $5, $2);
+		}
+    |	DO Statement WHILE '(' Expr ')' error {
+			$$ = new ASTNode('DoWhile', $5, $2);
+		}
+    |	WHILE '(' Expr ')' Statement {
+			$$ = new ASTNode('While', $3, $5);
+		}
+    |	FOR '(' ExprNoInOpt ';' ExprOpt ';' ExprOpt ')' Statement {
+			var forInfo = {
+				start: $3,
+				end: $5,
+				step: $7
+			};
+			
+			$$ = new ASTNode('For', forInfo, $9);
+		}
+    |	FOR '(' VAR VariableDeclarationListNoIn ';' ExprOpt ';' ExprOpt ')' Statement {
+				var forInfo = {
+				start: $4,
+				end: $6,
+				step: $8
+			};
+			
+			$$ = new ASTNode('For', forInfo, $10);
+		}
+    |	FOR '(' LeftHandSideExpr INTOKEN Expr ')' Statement {
+			var forInfo = {
+				each: $3,
+				inExpr: $5
+			};
+			
+			$$ = new ASTNode('ForIn', forInfo, $7);
+		}
+    |	FOR '(' VAR IDENT INTOKEN Expr ')' Statement {
+			var forInfo = {
+				each: $4,
+				inExpr: $6
+			};
+			
+			$$ = new ASTNode('ForInScoped', forInfo, $8);
+		}
+    |	FOR '(' VAR IDENT InitializerNoIn INTOKEN Expr ')' Statement {
+			var forInfo = {
+				each: $4,
+				inExpr: $7
+			};
+			
+			$$ = new ASTNode('ForInScoped', forInfo, $9);
+		}
     ;
 
 ExprOpt
     : 
-    | Expr
+    |	Expr
     ;
 
 ExprNoInOpt
     : 
-    | ExprNoIn
+    |	ExprNoIn
     ;
 
 ContinueStatement
-    : CONTINUE ';'
-    | CONTINUE error
-    | CONTINUE IDENT ';'
-    | CONTINUE IDENT error
+    :	CONTINUE ';' {
+			$$ = new ASTNode('Continue', null, null);
+		}
+    |	CONTINUE error {
+			$$ = new ASTNode('Continue', null, null);
+		}
+    |	CONTINUE IDENT ';' {
+			$$ = new ASTNode('Continue', $1, null);
+		}
+    |	CONTINUE IDENT error {
+				$$ = new ASTNode('Continue', $1, null);
+		}
     ;
 
 BreakStatement
-    : BREAK ';'
-    | BREAK error
-    | BREAK IDENT ';'
-    | BREAK IDENT error
+    :	BREAK ';' {
+			$$ = new ASTNode('Break', null, null);
+		}
+    |	BREAK error {
+			console.log('error in identless break');
+		}
+    |	BREAK IDENT ';' {
+			$$ = new ASTNode('Break', $1, null);
+		}
+    |	BREAK IDENT error {
+			console.log('error in ident break');
+		}
     ;
 
 ReturnStatement
-    : RETURN ';'
-    | RETURN error
-    | RETURN Expr ';'
-    | RETURN Expr error
+    :	RETURN ';' {
+			$$ = new ASTNode('Return', null, null);
+		}
+    |	RETURN error {
+			console.log('error in expressionless return');
+		}
+    |	RETURN Expr ';' {
+			$$ = new ASTNode('Return', $1, null);
+		}
+    |	RETURN Expr error {
+			console.log('error in expression return');
+		}
     ;
 
 WithStatement
-    : WITH '(' Expr ')' Statement
+    :	WITH '(' Expr ')' Statement {
+			$$ = new ASTNode('With', $3, $5);
+		}
     ;
 
 SwitchStatement
-    : SWITCH '(' Expr ')' CaseBlock
+    :	SWITCH '(' Expr ')' CaseBlock {
+			$$ = new ASTNode('Switch', $3, $5);
+		}
     ;
 
 CaseBlock
-    : OPENBRACE CaseClausesOpt CLOSEBRACE
-    | OPENBRACE CaseClausesOpt DefaultClause CaseClausesOpt CLOSEBRACE
+    :	OPENBRACE CaseClausesOpt CLOSEBRACE {
+			$$ = new ASTNode('CaseBlock', $2, null);
+		}
+    |	OPENBRACE CaseClausesOpt DefaultClause CaseClausesOpt CLOSEBRACE {
+			var cases = [];
+			if ($2 instanceof Array) {
+				cases = $2;
+				cases.push($3);
+				cases = cases.concat($4);
+				$$ = new ASTNode('CaseBlock', cases, null);
+			}
+			else {
+				console.log('warning: could not construct case list');
+			}
+		}
     ;
 
 CaseClausesOpt
     : 
-    | CaseClauses
+    |	CaseClauses
     ;
 
 CaseClauses
-    : CaseClause
-    | CaseClauses CaseClause
+    :	CaseClause {
+			$$ = [ $1 ];
+		}
+    |	CaseClauses CaseClause {
+			if ($1 instanceof Array) {
+				$1.push($2);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $2 ];
+			}
+		}
     ;
 
 CaseClause
-    : CASE Expr ':'
-    | CASE Expr ':' SourceElements
+    :	CASE Expr ':' {
+			$$ = new ASTNode('Case', $2, null);
+		}
+    |	CASE Expr ':' SourceElements {
+			$$ = new ASTNode('Case', $2, $4);
+		}
     ;
 
 DefaultClause
-    : DEFAULT ':'
-    | DEFAULT ':' SourceElements
+    :	DEFAULT ':' {
+			$$ = new ASTNode('Case', 'Default', null);
+		}
+    |	DEFAULT ':' SourceElements {
+			$$ = new ASTNode('Case', 'Default', $4);
+		}
     ;
 
 LabelledStatement
