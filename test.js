@@ -1,4 +1,4 @@
 var compiler = require('./compiler');
 
-var program = compiler.compile('var x = function z() { x; }; x();');
+var program = compiler.compile('function z() { x; } x();');
 console.log(program);

@@ -55,7 +55,13 @@ var handle = module.exports.handle = function handle(node, listSeparator, remove
 		var remLast = removeLast || false;
 		var code = '';
 		node.forEach(function(entry) {
-			code += handle(entry) + sep;
+			var returnedCode = handle(entry);
+			
+			if (returnedCode !== '') {
+				returnedCode += sep;
+			}
+			
+			code += returnedCode;
 		});
 		
 		if (remLast) {
