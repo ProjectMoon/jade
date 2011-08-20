@@ -1,13 +1,25 @@
+/*
+References:
+http://www.opensource.apple.com/source/JavaScriptCore/JavaScriptCore-6531.21.9/parser/Keywords.table
+http://www.opensource.apple.com/source/JavaScriptCore/JavaScriptCore-6531.21.9/parser/Lexer.cpp
+*/
+
 %lex
 %%
 
 \s+                   /* skip whitespace */
-"{"			return 'OPENBRACE'
+
+"{"			return 'OPENBRACE' /* single characters */
 "}"			return 'CLOSEBRACE'
+"("			return '('
+")"			return ')'
+"["			return '['
+"]"			return ']'
 ","			return ','
 "?"			return '?'
 ":"			return ':'
 ";"			return ';'
+"."			return '.'
 
 "break"		return 'BREAK' /* keywords */
 "case"		return 'CASE'
