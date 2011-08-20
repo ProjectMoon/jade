@@ -5,6 +5,15 @@ http://www.opensource.apple.com/source/JavaScriptCore/JavaScriptCore-6531.21.9/p
 http://www.opensource.apple.com/source/JavaScriptCore/JavaScriptCore-6531.21.9/parser/Lexer.cpp
 */
 
+/* code for maintaining state and stuff to construct an AST */
+%{
+	var ASTNode = module.exports.ASTNode = function(root, left, right) {
+		this.root = root;
+		this.left = left;
+		this.right = right;
+	}
+%}
+
 /*
 Lexer defintion, gleaned from Keywords.table and Lexer.cpp
 */
@@ -122,241 +131,455 @@ The actual grammar. NoBF = No Brace or Function
 %%
 
 Literal
-    : NULLTOKEN
-    | TRUETOKEN
-    | FALSETOKEN
-    | NUMBER
-    | STRING
-    | '/'
-    | DIVEQUAL
+    :	NULLTOKEN { $$ = 'null'; }
+    |	TRUETOKEN { $$ = 'true'; }
+    |	FALSETOKEN { $$ = 'false'; }
+    |	NUMBER { $$ = Number($1); }
+    |	STRING { $$ = yytext; }
+    |	'/' { $$ = '/' }
+    |	DIVEQUAL { $$ = '/='; }
     ;
 
 /* JSON/javascript object literals */
 Property
-    : IDENT ':' AssignmentExpr
-    | STRING ':' AssignmentExpr
-    | NUMBER ':' AssignmentExpr
-    | IDENT IDENT '(' ')' OPENBRACE FunctionBody CLOSEBRACE
-    | IDENT IDENT '(' FormalParameterList ')' OPENBRACE FunctionBody CLOSEBRACE
+    :	IDENT ':' AssignmentExpr {
+			$$ = new ASTNode('JSONProperty', $1, $3);
+		}
+	|	STRING ':' AssignmentExpr {
+			$$ = new ASTNode('JSONProperty', $1, $3);
+		}
+    |	NUMBER ':' AssignmentExpr {
+			$$ = new ASTNode('JSONNumberProperty', $1, $3);
+			
+		}
+    |	IDENT IDENT '(' ')' OPENBRACE FunctionBody CLOSEBRACE {
+			console.log('ident ident () { body }');
+		}
+	|	IDENT IDENT '(' FormalParameterList ')' OPENBRACE FunctionBody CLOSEBRACE {
+			console.log('ident ident (params) { body }');
+		}
     ;
 
 /* JSON/javascript object literals */
 PropertyList
-    : Property
-    | PropertyList ',' Property
+    :	Property {
+			$$ = [ $1 ];
+		}
+    |	PropertyList ',' Property {
+			if ($1 instanceof Array) {
+				$1.push($3);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $3 ];
+			}
+		}
     ;
 
 /* JSON/javascript object literals, or other stuff */
 PrimaryExpr
-    : PrimaryExprNoBrace
-    | OPENBRACE CLOSEBRACE
-    | OPENBRACE PropertyList CLOSEBRACE
-    | OPENBRACE PropertyList ',' CLOSEBRACE
+    :	PrimaryExprNoBrace
+    |	OPENBRACE CLOSEBRACE {
+			$$ = new ASTNode('DirectCopy', '{}', null);
+		}
+    |	OPENBRACE PropertyList CLOSEBRACE {
+			$$ = new ASTNode('JSON', $2, null);
+		}
+    |	OPENBRACE PropertyList ',' CLOSEBRACE {
+			$$ = new ASTNode('JSON', $2, null);
+		}
     ;
 
 PrimaryExprNoBrace
-    : THISTOKEN
-    | Literal
-    | ArrayLiteral
-    | IDENT
-    | '(' Expr ')'
+    :	THISTOKEN {
+			$$ = 'this';
+		}
+    |	Literal
+    |	ArrayLiteral
+    |	IDENT
+    |	'(' Expr ')' {
+			$$ = $2;
+		}
     ;
 
 /* Array literals */
+/* ElisionOpt is blank entries. ignore them */
+/* i.e. [,,,] becomes [] */
 ArrayLiteral
-    : '[' ElisionOpt ']'
-    | '[' ElementList ']'
-    | '[' ElementList ',' ElisionOpt ']'
+    :	'[' ElisionOpt ']' {
+			$$ = [];
+		}
+	|	'[' ElementList ']' {
+			if ($2 instanceof Array) {
+				$$ = $2;
+			}
+			else {
+				$$ = [ $2 ];
+			}
+		}
+    |	'[' ElementList ',' ElisionOpt ']' {
+			if ($2 instanceof Array) {
+				$$ = $2;
+			}
+			else {
+				$$ = [ $2 ];
+			}
+		}
     ;
 
 /* Array literals */
 ElementList
-    : ElisionOpt AssignmentExpr
-    | ElementList ',' ElisionOpt AssignmentExpr
+    :	ElisionOpt AssignmentExpr {
+			$$ = [ $2 ];
+		}
+    |	ElementList ',' ElisionOpt AssignmentExpr {
+			if ($1 instanceof Array) {
+				$1.push($4);
+				$$ = $1;
+			}
+		}
     ;
 
 /* Array literals */
 ElisionOpt
     : 
-    | Elision
+    |	Elision { $$ = ''; }
     ;
 
 /* Array literals */
 Elision
-    : ','
-    | Elision ','
+    :	',' { $$ = ''; }
+    |	Elision ','  { $$ = ''; }
     ;
 
 MemberExpr
-    : PrimaryExpr
-    | FunctionExpr
-    | MemberExpr '[' Expr ']'
-    | MemberExpr '.' IDENT
-    | NEW MemberExpr Arguments
+    :	PrimaryExpr
+    |	FunctionExpr
+    |	MemberExpr '[' Expr ']' {
+			$$ = new ASTNode('ArrayProperty', $1, $3);
+		}
+    |	MemberExpr '.' IDENT {
+			$$ = new ASTNode('Property', $1, $3);
+		}
+    |	NEW MemberExpr Arguments {
+			$$ = new ASTNode('New', $1, $3);
+		}
     ;
 
 MemberExprNoBF
-    : PrimaryExprNoBrace
-    | MemberExprNoBF '[' Expr ']'
-    | MemberExprNoBF '.' IDENT
-    | NEW MemberExpr Arguments
+    :	PrimaryExprNoBrace
+    |	MemberExprNoBF '[' Expr ']' {
+			$$ = new ASTNode('ArrayProperty', $1, $3);
+		}
+    |	MemberExprNoBF '.' IDENT {
+			$$ = new ASTNode('Property', $1, $3);
+		|
+    |	NEW MemberExpr Arguments {
+			$$ = new ASTNode('New', $1, $3);
+		}
     ;
 
+/* used on lefthand side */
 NewExpr
-    : MemberExpr
-    | NEW NewExpr
+    :	MemberExpr
+    |	NEW NewExpr {
+			$$ = new ASTNode('New', $2, null);
+		}
     ;
 
 NewExprNoBF
-    : MemberExprNoBF
-    | NEW NewExpr
+    :	MemberExprNoBF
+    |	NEW NewExpr {
+			$$ = new ASTNode('New', $2, null);
+		}
     ;
 
 CallExpr
-    : MemberExpr Arguments
-    | CallExpr Arguments
-    | CallExpr '[' Expr ']'
-    | CallExpr '.' IDENT
+    :	MemberExpr Arguments {
+			/* x() */
+			$$ = new ASTNode('Call', $1, $3);
+		}
+    |	CallExpr Arguments {
+			/* x()() */
+			$$ = new ASTNode('Call', $1, $3);
+		}
+    |	CallExpr '[' Expr ']' {
+			/* x()[y] */
+			$$ = new ASTNode('ArrayProperty', $1, $3);
+		}
+    |	CallExpr '.' IDENT {
+			/* x().y */
+			$$ = new ASTNode('Property', $1, $3);
+		}
     ;
 
 CallExprNoBF
-    : MemberExprNoBF Arguments
-    | CallExprNoBF Arguments
-    | CallExprNoBF '[' Expr ']'
-    | CallExprNoBF '.' IDENT
+    :	MemberExprNoBF Arguments {
+			/* x() */
+			$$ = new ASTNode('Call', $1, $3);
+		}
+    |	CallExprNoBF Arguments {
+			/* x()() */
+			$$ = new ASTNode('Call', $1, $3);
+		}
+    |	CallExprNoBF '[' Expr ']' {
+			/* x()[y] */
+			$$ = new ASTNode('ArrayProperty', $1, $3);
+		}
+    |	CallExprNoBF '.' IDENT {
+			$$ = new ASTNode('Property', $1, $3);
+		}
     ;
 
 Arguments
-    : '(' ')'
-    | '(' ArgumentList ')'
+    :	'(' ')' {
+			$$ = new ASTNode('Arguments', null, null);
+		}
+    |	'(' ArgumentList ')' {
+			$$ = new ASTNode('Arguments', $2, null);
+		}
     ;
 
 ArgumentList
-    : AssignmentExpr
-    | ArgumentList ',' AssignmentExpr
+    :	AssignmentExpr {
+			$$ = [ $1 ];
+		}
+    |	ArgumentList ',' AssignmentExpr {
+			if ($1 instanceof Array) {
+				$1.push($3);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $3 ];
+			}
+		}
     ;
 
 LeftHandSideExpr
-    : NewExpr
-    | CallExpr
+    :	NewExpr
+    |	CallExpr
     ;
 
 LeftHandSideExprNoBF
-    : NewExprNoBF
-    | CallExprNoBF
+    :	NewExprNoBF
+    |	CallExprNoBF
     ;
 
+/* These ASTNodes have null left and filled right because they are post */
 PostfixExpr
-    : LeftHandSideExpr
-    | LeftHandSideExpr PLUSPLUS
-    | LeftHandSideExpr MINUSMINUS
+    :	LeftHandSideExpr
+    |	LeftHandSideExpr PLUSPLUS {
+			$$ = New ASTNode('++', null, $1);
+		}
+    |	LeftHandSideExpr MINUSMINUS {
+			$$ = new ASTNode('--', null, $1);
+		}
     ;
 
+/* These ASTNodes have null left and filled right because they are post */
 PostfixExprNoBF
-    : LeftHandSideExprNoBF
-    | LeftHandSideExprNoBF PLUSPLUS
-    | LeftHandSideExprNoBF MINUSMINUS
+    :	LeftHandSideExprNoBF
+    |	LeftHandSideExprNoBF PLUSPLUS {
+			$$ = new ASTNode('++', $1, null);
+		}
+    |	LeftHandSideExprNoBF MINUSMINUS {
+			$$ = new ASTNode('--', $1, null);
+		}
     ;
 
 UnaryExprCommon
-    : DELETETOKEN UnaryExpr
-    | VOIDTOKEN UnaryExpr
-    | TYPEOF UnaryExpr
-    | PLUSPLUS UnaryExpr
+    :	DELETETOKEN UnaryExpr {
+			$$ = new ASTNode('Delete', $1, null);
+		}
+    |	VOIDTOKEN UnaryExpr {
+			$$ = new ASTNode('Void', $1, null);
+		}
+    |	TYPEOF UnaryExpr {
+			$$ = new ASTNode('Typeof', $1, null);
+		}
+    |	PLUSPLUS UnaryExpr {
+			/* filled left and null right because it's pre */
+			$$ = new ASTNode('++', $2, null);
+		}
     //| AUTOPLUSPLUS UnaryExpr
-    | MINUSMINUS UnaryExpr
+    |	MINUSMINUS UnaryExpr {
+			/* filled left and null right because it's pre */
+			$$ = new ASTNode('--', $2, null);
+		}
     //| AUTOMINUSMINUS UnaryExpr
-    | '+' UnaryExpr
-    | '-' UnaryExpr
-    | '~' UnaryExpr
-    | '!' UnaryExpr
+    |	'+' UnaryExpr {
+			$$ = new ASTNode('+', $2, null);
+		}
+    |	'-' UnaryExpr {
+			$$ = new ASTNode('-', $2, null);
+		}
+    |	'~' UnaryExpr {
+			$$ = new ASTNode('~', $2, null);
+		}
+    |	'!' UnaryExpr {
+			$$ = new ASTNode('!', $2, null);
+		}
     ;
 
 UnaryExpr
-    : PostfixExpr
-    | UnaryExprCommon
+    :	PostfixExpr
+    |	UnaryExprCommon
     ;
 
 UnaryExprNoBF
-    : PostfixExprNoBF
-    | UnaryExprCommon
+    :	PostfixExprNoBF
+    |	UnaryExprCommon
     ;
 
 MultiplicativeExpr
-    : UnaryExpr
-    | MultiplicativeExpr '*' UnaryExpr
-    | MultiplicativeExpr '/' UnaryExpr
-    | MultiplicativeExpr '%' UnaryExpr
+    :	UnaryExpr
+    |	MultiplicativeExpr '*' UnaryExpr {
+			$$ = new ASTNode('*', $1, $3);
+		}
+    |	MultiplicativeExpr '/' UnaryExpr {
+			$$ = new ASTNode('/', $1, $3);
+		}
+    |	MultiplicativeExpr '%' UnaryExpr {
+			$$ = new ASTNode('%', $1, $3);
+		}
     ;
 
 MultiplicativeExprNoBF
-    : UnaryExprNoBF
-    | MultiplicativeExprNoBF '*' UnaryExpr
-    | MultiplicativeExprNoBF '/' UnaryExpr
-    | MultiplicativeExprNoBF '%' UnaryExpr
+    :	UnaryExprNoBF
+    |	MultiplicativeExprNoBF '*' UnaryExpr {
+			$$ = new ASTNode('*', $1, $3);
+		}
+    |	MultiplicativeExprNoBF '/' UnaryExpr {
+			$$ = new ASTNode('/', $1, $3);
+		}
+    |	MultiplicativeExprNoBF '%' UnaryExpr {
+			$$ = new ASTNode('%', $1, $3);
+		}
     ;
 
 AdditiveExpr
-    : MultiplicativeExpr
-    | AdditiveExpr '+' MultiplicativeExpr
-    | AdditiveExpr '-' MultiplicativeExpr
+    :	MultiplicativeExpr
+    |	AdditiveExpr '+' MultiplicativeExpr {
+			$$ = new ASTNode('+', $1, $3);
+		}
+    |	AdditiveExpr '-' MultiplicativeExpr {
+			$$ = new ASTNode('-', $1, $3);
+		}
     ;
 
 AdditiveExprNoBF
-    : MultiplicativeExprNoBF
-    | AdditiveExprNoBF '+' MultiplicativeExpr
-    | AdditiveExprNoBF '-' MultiplicativeExpr
+    :	MultiplicativeExprNoBF
+    |	AdditiveExprNoBF '+' MultiplicativeExpr {
+			$$ = new ASTNode('+', $1, $3);
+		}
+    |	AdditiveExprNoBF '-' MultiplicativeExpr {
+			$$ = new ASTNode('-', $1, $3);
+		}
     ;
 
 ShiftExpr
-    : AdditiveExpr
-    | ShiftExpr LSHIFT AdditiveExpr
-    | ShiftExpr RSHIFT AdditiveExpr
-    | ShiftExpr URSHIFT AdditiveExpr
+    :	AdditiveExpr
+    |	ShiftExpr LSHIFT AdditiveExpr {
+			$$ = new ASTNode('<<', $1, $3);
+		}
+    |	ShiftExpr RSHIFT AdditiveExpr {
+			$$ = new ASTNode('>>', $1, $3);
+		}
+    |	ShiftExpr URSHIFT AdditiveExpr {
+			$$ = new ASTNode('>>>', $1, $3);
+		}
     ;
 
 ShiftExprNoBF
-    : AdditiveExprNoBF
-    | ShiftExprNoBF LSHIFT AdditiveExpr
-    | ShiftExprNoBF RSHIFT AdditiveExpr
-    | ShiftExprNoBF URSHIFT AdditiveExpr
+    :	AdditiveExprNoBF
+    |	ShiftExprNoBF LSHIFT AdditiveExpr {
+			$$ = new ASTNode('<<', $1, $3);
+		}
+    |	ShiftExprNoBF RSHIFT AdditiveExpr {
+			$$ = new ASTNode('>>', $1, $3);
+		}
+    |	ShiftExprNoBF URSHIFT AdditiveExpr {
+			$$ = new ASTNode('>>>', $1, $3);
+		}
     ;
 
 RelationalExpr
-    : ShiftExpr
-    | RelationalExpr '<' ShiftExpr
-    | RelationalExpr '>' ShiftExpr
-    | RelationalExpr LE ShiftExpr
-    | RelationalExpr GE ShiftExpr
-    | RelationalExpr INSTANCEOF ShiftExpr
-    | RelationalExpr INTOKEN ShiftExpr
+    :	ShiftExpr
+    |	RelationalExpr '<' ShiftExpr {
+			$$ = new ASTNode('<', $1, $3);
+		}
+    |	RelationalExpr '>' ShiftExpr {
+			$$ = new ASTNode('>', $1, $3);
+		}
+    |	RelationalExpr LE ShiftExpr {
+			$$ = new ASTNode('<=', $1, $3);
+		}
+    |	RelationalExpr GE ShiftExpr {
+			$$ = new ASTNode('>=', $1, $3);
+		}
+    |	RelationalExpr INSTANCEOF ShiftExpr {
+			$$ = new ASTNode('Instanceof', $1, $3);
+		}
+    |	RelationalExpr INTOKEN ShiftExpr {
+			$$ = new ASTNode('In', $1, $3);
+		}
     ;
 
 RelationalExprNoIn
-    : ShiftExpr
-    | RelationalExprNoIn '<' ShiftExpr
-    | RelationalExprNoIn '>' ShiftExpr
-    | RelationalExprNoIn LE ShiftExpr
-    | RelationalExprNoIn GE ShiftExpr
-    | RelationalExprNoIn INSTANCEOF ShiftExpr
+    :	ShiftExpr
+    |	RelationalExprNoIn '<' ShiftExpr {
+			$$ = new ASTNode('<', $1, $3);
+		}
+    |	RelationalExprNoIn '>' ShiftExpr {
+			$$ = new ASTNode('>', $1, $3);
+		}
+    |	RelationalExprNoIn LE ShiftExpr {
+			$$ = new ASTNode('<=', $1, $3);
+		}
+    |	RelationalExprNoIn GE ShiftExpr {
+			$$ = new ASTNode('>=', $1, $3);
+		}
+    |	RelationalExprNoIn INSTANCEOF ShiftExpr {
+			$$ = new ASTNode('Instanceof', $1, $3);
+		}
     ;
 
 RelationalExprNoBF
-    : ShiftExprNoBF
-    | RelationalExprNoBF '<' ShiftExpr
-    | RelationalExprNoBF '>' ShiftExpr
-    | RelationalExprNoBF LE ShiftExpr
-    | RelationalExprNoBF GE ShiftExpr
-    | RelationalExprNoBF INSTANCEOF ShiftExpr
-    | RelationalExprNoBF INTOKEN ShiftExpr
+    :	ShiftExprNoBF
+    |	RelationalExprNoBF '<' ShiftExpr {
+			$$ = new ASTNode('<', $1, $3);
+		}
+    |	RelationalExprNoBF '>' ShiftExpr {
+			$$ = new ASTNode('>', $1, $3);
+		}
+    |	RelationalExprNoBF LE ShiftExpr {
+			$$ = new ASTNode('<=', $1, $3);
+		}
+    |	RelationalExprNoBF GE ShiftExpr {
+			$$ = new ASTNode('>=', $1, $3);
+		}
+    |	RelationalExprNoBF INSTANCEOF ShiftExpr {
+			$$ = new ASTNode('Instanceof', $1, $3);
+		}
+    |	RelationalExprNoBF INTOKEN ShiftExpr {
+			$$ = new ASTNode('In', $1, $3);
+		}
     ;
 
 EqualityExpr
-    : RelationalExpr
-    | EqualityExpr EQEQ RelationalExpr
-    | EqualityExpr NE RelationalExpr
-    | EqualityExpr STREQ RelationalExpr
-    | EqualityExpr STRNEQ RelationalExpr
+    :	RelationalExpr
+    |	EqualityExpr EQEQ RelationalExpr {
+			$$ = new ASTNode('==', $1, $3);
+		}
+    |	EqualityExpr NE RelationalExpr {
+			$$ = new ASTNode('!=', $1, $3);
+		}
+    |	EqualityExpr STREQ RelationalExpr {
+			$$ = new ASTNode('===', $1, $3);
+		}
+    |	EqualityExpr STRNEQ RelationalExpr {
+			$$ = new ASTNode('!==', $1, $3);
+		}
     ;
 
 EqualityExprNoIn
