@@ -21,21 +21,8 @@ Lexer defintion, gleaned from Keywords.table and Lexer.cpp
 %lex
 %%
 
+"#".*				/* skip comments */
 \s+                   /* skip whitespace */
-
-"{"			return 'OPENBRACE' /* single characters */
-"}"			return 'CLOSEBRACE'
-"("			return '('
-")"			return ')'
-"["			return '['
-"]"			return ']'
-","			return ','
-"?"			return '?'
-":"			return ':'
-";"			return ';'
-"."			return '.'
-\"			return '"'
-"'"			return '\''
 
 "break"		return 'BREAK' /* keywords */
 "case"		return 'CASE'
@@ -72,6 +59,38 @@ Lexer defintion, gleaned from Keywords.table and Lexer.cpp
 "import"	return 'RESERVED'
 "super"		return 'RESERVED'
 
+[a-zA-Z_]+([0-9a-zA-Z_])*	return 'IDENT'
+[0-9]+("."[0-9]+)?\b  return 'NUMBER'
+\".*\"		return 'STRING' /* regex stuff: idents, strings, etc */
+\'.*\'		return 'STRING'
+
+">>="		return 'RSHIFTEQUAL'
+">>>"		return 'URSHIFT'
+">>>="		return 'URSHIFTEQUAL'
+"<<="		return 'LSHIFTEQUAL'
+"==="		return 'STREQ'
+"!=="		return 'STRNEQ'
+
+"<<"		return 'LSHIFT'
+">>"		return 'RSHIFT'
+"|="		return 'OREQUAL'
+"&="		return 'ANDEQUAL'
+"^="		return 'XOREQUAL'
+"++"		return 'PLUSPLUS'
+"--"		return 'MINUSMINUS'
+"=="		return 'EQEQ'
+"!="		return 'NE'
+">="		return 'GE'
+"<="		return 'LE'
+"&&"		return 'AND'
+"||"		return 'OR'
+"+="		return 'PLUSEQUAL'
+"-="		return 'MINUSEQUAL'
+"*="		return 'MULTEQUAL'
+"/="		return 'DIVEQUAL'
+"%="		return 'MODEQUAL'
+
+
 "="			return '=' /* operators */
 "/"			return '/'
 "*"			return '*'
@@ -83,41 +102,23 @@ Lexer defintion, gleaned from Keywords.table and Lexer.cpp
 "~"			return "~"
 ">"			return '>'
 "<"			return '<'
-
-"++"		return 'PLUSPLUS' /* 2- and 3-character operators */
-"--"		return 'MINUSMINUS'
-"=="		return 'EQEQ'
-"!="		return 'NE'
-">="		return 'GE'
-"<="		return 'LE'
-"&&"		return 'AND'
-"||"		return 'OR'
-
-"+="		return 'PLUSEQUAL'
-"-="		return 'MINUSEQUAL'
-"*="		return 'MULTEQUAL'
-"/="		return 'DIVEQUAL'
-"%="		return 'MODEQUAL'
-
-"==="		return 'STREQ'
-"!=="		return 'STRNEQ'
-
 "^"			return '^' /* bitwise operators */
-"^="		return 'XOREQUAL'
 "&"			return '&'
-"&="		return 'ANDEQUAL'
 "|"			return '|'
-"|="		return 'OREQUAL'
-"<<"		return 'LSHIFT'
-"<<="		return 'LSHIFTEQUAL'
-">>"		return 'RSHIFT'
-">>="		return 'RSHIFTEQUAL'
-">>>"		return 'URSHIFT'
-">>>="		return 'URSHIFTEQUAL'
 
-\".*\"		return 'STRING' /* regex stuff: idents, strings, etc */
-[0-9]+("."[0-9]+)?\b  return 'NUMBER'
-[a-zA-Z_]+([0-9a-zA-Z_])*	return 'IDENT'
+"{"			return 'OPENBRACE' /* single characters */
+"}"			return 'CLOSEBRACE'
+"("			return '('
+")"			return ')'
+"["			return '['
+"]"			return ']'
+","			return ','
+"?"			return '?'
+":"			return ':'
+";"			return ';'
+"."			return '.'
+\"			return '"'
+"'"			return '\''
 
 /lex
 
@@ -299,11 +300,11 @@ NewExprNoBF
 CallExpr
     :	MemberExpr Arguments {
 			/* x() */
-			$$ = new ASTNode('Call', $1, $3);
+			$$ = new ASTNode('Call', $1, $2);
 		}
     |	CallExpr Arguments {
 			/* x()() */
-			$$ = new ASTNode('Call', $1, $3);
+			$$ = new ASTNode('Call', $1, $2);
 		}
     |	CallExpr '[' Expr ']' {
 			/* x()[y] */
@@ -318,11 +319,11 @@ CallExpr
 CallExprNoBF
     :	MemberExprNoBF Arguments {
 			/* x() */
-			$$ = new ASTNode('Call', $1, $3);
+			$$ = new ASTNode('Call', $1, $2);
 		}
     |	CallExprNoBF Arguments {
 			/* x()() */
-			$$ = new ASTNode('Call', $1, $3);
+			$$ = new ASTNode('Call', $1, $2);
 		}
     |	CallExprNoBF '[' Expr ']' {
 			/* x()[y] */
@@ -766,7 +767,7 @@ AssignmentExprNoBF
 /* take text directly because it's used in AssignmentExpr rules */
 AssignmentOperator
     :	'='
-    |	PLUSEQUAL { console.log('whoa bro'); }
+    |	PLUSEQUAL
     |	MINUSEQUAL
     |	MULTEQUAL
     |	DIVEQUAL
