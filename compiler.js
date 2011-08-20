@@ -1,5 +1,6 @@
 var jadeparser = require('./jadeparser');
 var ASTNode = require('./jadeparser').ASTNode;
+var ast = require('./ast');
 
 //Stuff to deal with the asynchronous wrapping.
 //asyncLevel tells us how many nested levels in we are.
@@ -10,7 +11,7 @@ var currAsyncCode = '';
 
 //ends the current async wrapping and resets it.
 //called at the end of blocks or when forced by -- operator.
-function handleAsyncWrapping() {
+var endAsyncWrapping = module.exports.endAsyncWrapping = function endAsyncWrapping() {
 	var wrapping = '';
 	for (var c = asyncLevel; c > 0; c--) {
 		wrapping += '});';
@@ -22,198 +23,11 @@ function handleAsyncWrapping() {
 }
 
 /**** Define how to handle the AST ****/
-
-var ASTParser = {
-	"DirectCopy": function(text) {
-		return text;
-	},
-	
-	"Block": function(block) {
-		if (block != null) {
-			return '{' + handle(block) + '}';
-		}
-		else {
-			return '{}';
-		}
-	},
-	
-	"VariableDeclaration": function(left, right) {
-		return 'var ' + handle(left, ',', true);
-	},
-	
-	"=": function(left, right) {
-		return left + '=' + right;
-	},
-	
-	"+": function(left, right) {
-		return left + '+' + right;
-	},
-	
-	"-": function(left, right) {
-		return left + '-' + right;
-	},
-	
-	"Property": function(left, right) {
-		return left + '.' + right;
-	},
-	
-	"Prototype": function(left, right) {
-		return left + '.prototype.' + right;
-	},
-	
-	"FunctionDef": function(left, right) {
-		var formalParams = right.formalParams;
-		if (formalParams == null) formalParams = '';
-		
-		var body = handle(right.body); //this is an AST in itself.
-		body += handleAsyncWrapping();
-		
-		return 'var ' + left + '=function ' + left + '(' + formalParams + '){' + body + '}';
-	},
-	
-	"AsyncFunctionDef": function(left, right) {
-		var formalParams = right.formalParams; //a list.
-		if (formalParams == null) formalParams = '';
-		if (formalParams.length > 0) formalParams += ',__cb';
-		else formalParams += '__cb';
-		
-		var body = handle(right.body); //this is an AST in itself.
-		body += handleAsyncWrapping();
-		
-		return 'var ' + left + '=function ' + left + '(' + formalParams + '){' + body + '}';
-	},
-	
-	"FunctionCall": function(left, right) {
-		if (right != null) {
-			return left + '(' + right + ')';
-		}
-		else {
-			return left + '()';
-		}
-	},
-	
-	"FunctionArguments": function(args) {
-		if (args != null) {
-			args = handle(args, ',', true);
-			return args;
-		}
-		else {
-			return '';
-		}
-	},
-	
-	"AsyncCall": function(left, right) {
-		asyncLevel++;
-		if (right != null) {
-			currAsyncCode = left + '(' + right + ', function() {';
-		}
-		else {
-			currAsyncCode = left + '(function() {';
-		}
-		
-		return currAsyncCode;
-	},
-	
-	"EndAsync": function() {
-			return handleAsyncWrapping();
-	},
-	
-	"If": function(condition, block) {
-		block += handleAsyncWrapping();
-		return 'if(' + condition + ')' + block;
-	},
-	
-	"InitVariable": function(left, right) {
-		if (right === currAsyncCode) {
-			//these variables are the result of an unwrapped async
-			//call.
-			var code = right;
-			
-			for (var c = 0; c < left.idents.length; c++) {
-				code += 'var ' + left.idents[c] + '=arguments[' + c + '];';
-			}
-			
-			return code;
-		}
-		else {
-			if (left.idents.length === 1) {
-				//this is a regular assignment.
-				return 'var ' + left.idents[0] + '=' + right;
-			}
-			else {
-				//destructuring assignment.
-				var code = 'var __r=' + right + ';';
-				for (var c = 0; c < left.idents.length; c++) {
-					var ident = left.idents[c];
-					code += 'var ' + ident + '=__r[' + c + '];';
-				}
-				
-				return code;
-			}
-		}
-	},
-	
-	"AssignVariable": function(left, right) {
-		console.log(right);
-		if (right === currAsyncCode) {
-			//these variables are the result of an unwrapped async
-			//call.
-			var code = right;
-			
-			for (var c = 0; c < left.idents.length; c++) {
-				code += left.idents[c] + '=arguments[' + c + '];';
-			}
-			
-			return code;
-		}
-		else {
-			if (left.idents.length === 1) {
-				//this is a regular assignment.
-				return 'var ' + left.idents[0] + '=' + right;
-			}
-			else {
-				//destructuring assignment.
-				var code = 'var __r = ' + right + ';';
-				for (var c = 0; c < left.idents.length; c++) {
-					var ident = left.idents[c];
-					code += ident + '=__r[' + c + '];';
-				}
-				
-				return code;
-			}
-		}
-	},
-	
-	"Return": function(left, right) {
-		if (left != null) {
-			return 'return ' + left;
-		}
-		else {
-			return 'return;'
-		}
-	},
-	
-	"AsyncReturn": function(left, right) {
-		if (left.values != null) {
-			var code = '__cb(';
-			
-			for (var c = 0; c < left.values.length; c++) {
-				code += left.values[c] + ',';
-			}
-			
-			code = code.substr(0, code.length - 1); //get rid of last ,
-			code += ');';
-			return code;
-		}
-		else {
-			return '__cb();';
-		}
-	}
-};
+var ASTParser = null; //set at the end, because of circular dependency.
 
 /**** This is where compilation takes place ****/
 
-function handle(node, listSeparator, removeLast) {
+var handle = module.exports.handle = function handle(node, listSeparator, removeLast) {
 	//handling an individual node of the AST tree.
 	if (node instanceof ASTNode) {
 		var code = '';
@@ -255,8 +69,10 @@ function handle(node, listSeparator, removeLast) {
 }
 
 module.exports.compile = function(text) {
+	ASTParser = ast.getAST(); //set here because of circular dependency
 	jadeparser.parser.parse(text);
 	var program = jadeparser.parseResult;
 	console.log(JSON.stringify(program, null, 2));
-	return handle(program) + handleAsyncWrapping();
+	return handle(program) + endAsyncWrapping();
 }
+
