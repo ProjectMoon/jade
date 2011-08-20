@@ -9,6 +9,22 @@ var ast = require('./ast');
 var asyncLevel = 0;
 var currAsyncCode = '';
 
+var increaseAsyncLevel = module.exports.increaseAsyncLevel = function() {
+	asyncLevel++;
+}
+
+var getAsyncLevel = module.exports.getAsyncLevel = function() {
+	return asyncLevel;
+}
+
+var setAsyncCode = module.exports.setAsyncCode = function(code) {
+	currAsyncCode = code;
+}
+
+var getAsyncCode = module.exports.getAsyncCode = function() {
+	return currAsyncCode;
+}
+
 //ends the current async wrapping and resets it.
 //called at the end of blocks or when forced by -- operator.
 var endAsyncWrapping = module.exports.endAsyncWrapping = function endAsyncWrapping() {
