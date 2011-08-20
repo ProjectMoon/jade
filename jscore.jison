@@ -131,13 +131,13 @@ The actual grammar. NoBF = No Brace or Function
 %%
 
 Literal
-    :	NULLTOKEN { $$ = 'null'; }
-    |	TRUETOKEN { $$ = 'true'; }
-    |	FALSETOKEN { $$ = 'false'; }
-    |	NUMBER { $$ = Number($1); }
-    |	STRING { $$ = yytext; }
-    |	'/' { $$ = '/' }
-    |	DIVEQUAL { $$ = '/='; }
+    :	NULLTOKEN { $$ = new ASTNode('DirectCopy', 'null', null); }
+    |	TRUETOKEN { $$ = new ASTNode('DirectCopy', 'true', null); }
+    |	FALSETOKEN { $$ = new ASTNode('DirectCopy', 'false', null); }
+    |	NUMBER { $$ = new ASTNode('DirectCopy', $1, null); }
+    |	STRING { $$ = new ASTNode('DirectCopy', yytext, null); }
+    |	'/' { $$ = new ASTNode('DirectCopy', '/', null); }
+    |	DIVEQUAL { $$ = new ASTNode('DirectCopy', '/=', null); }
     ;
 
 /* JSON/javascript object literals */
@@ -192,7 +192,7 @@ PrimaryExpr
 
 PrimaryExprNoBrace
     :	THISTOKEN {
-			$$ = 'this';
+			$$ = new ASTNode('DirectCopy', 'this', null);
 		}
     |	Literal
     |	ArrayLiteral
@@ -759,6 +759,7 @@ AssignmentExprNoBF
 		}
     ;
 
+/* take text directly because it's used in AssignmentExpr rules */
 AssignmentOperator
     :	'='
     |	PLUSEQUAL
@@ -829,7 +830,7 @@ VariableStatement
 			$$ = new ASTNode('VariableDeclaration', $2, null);
 		}
     |	VAR VariableDeclarationList error {
-			$$ = new ASTNode('VariableDeclaration', $2, null);
+			console.log('error at variable statement');
 		}
     ;
 
@@ -894,7 +895,7 @@ ConstStatement
 			$$ = new ASTNode('Const', $2, null);
 		}
     |	CONSTTOKEN ConstDeclarationList error {
-			$$ = new ASTNode('Const', $2, null);
+			console.log('error at const statement');
 		}
     ;
 
@@ -938,7 +939,7 @@ EmptyStatement
 
 ExprStatement
     :	ExprNoBF ';'
-    |	ExprNoBF error
+    |	ExprNoBF error { console.log('error at ExprNoBF statement.');
     ;
 
 IfStatement
@@ -955,7 +956,7 @@ IterationStatement
 			$$ = new ASTNode('DoWhile', $5, $2);
 		}
     |	DO Statement WHILE '(' Expr ')' error {
-			$$ = new ASTNode('DoWhile', $5, $2);
+			console.log('error at do while statement');
 		}
     |	WHILE '(' Expr ')' Statement {
 			$$ = new ASTNode('While', $3, $5);
@@ -1019,13 +1020,13 @@ ContinueStatement
 			$$ = new ASTNode('Continue', null, null);
 		}
     |	CONTINUE error {
-			$$ = new ASTNode('Continue', null, null);
+			console.log('error at continue statement');
 		}
     |	CONTINUE IDENT ';' {
 			$$ = new ASTNode('Continue', $1, null);
 		}
     |	CONTINUE IDENT error {
-				$$ = new ASTNode('Continue', $1, null);
+				console.log('error at continue with ident statement');
 		}
     ;
 
@@ -1128,55 +1129,143 @@ DefaultClause
     ;
 
 LabelledStatement
-    : IDENT ':' Statement
+    :	IDENT ':' Statement {
+			$$ = new ASTNode('Label', $1, $3);
+		}
     ;
 
 ThrowStatement
-    : THROW Expr ';'
-    | THROW Expr error
+    :	THROW Expr ';' {
+			$$ = new ASTNode('Throw', $2, null);
+		}
+    |	THROW Expr error {
+			console.log('error at throw');
+		}
     ;
 
 TryStatement
-    : TRY Block FINALLY Block
-    | TRY Block CATCH '(' IDENT ')' Block
-    | TRY Block CATCH '(' IDENT ')' Block FINALLY Block
+    :	TRY Block FINALLY Block {
+			$$ = new ASTNode('TryCatch', { block: $2, finally: $4 }, null);
+		}
+    |	TRY Block CATCH '(' IDENT ')' Block {
+			var catch = {
+				ident: $5
+				block: $7
+			};
+			$$ = new ASTNode('TryCatch', { block: $2, catch: catch }, null);
+		}
+    |	TRY Block CATCH '(' IDENT ')' Block FINALLY Block {
+			var catch = {
+				ident: $5
+				block: $7
+			};
+			$$ = new ASTNode('TryCatch', { block: $2, catch: catch, finally: $9 }, null);
+		}
     ;
 
 DebuggerStatement
-    : DEBUGGER ';'
-    | DEBUGGER error
+    :	DEBUGGER ';' {
+			$$ = new ASTNode('Debugger', null, null);
+		}
+    |	DEBUGGER error {
+			console.log('error at debugger');
+		}
     ;
 
 FunctionDeclaration
-    : FUNCTION IDENT '(' ')' OPENBRACE FunctionBody CLOSEBRACE
-    | FUNCTION IDENT '(' FormalParameterList ')' OPENBRACE FunctionBody CLOSEBRACE
+    :	FUNCTION IDENT '(' ')' OPENBRACE FunctionBody CLOSEBRACE {
+			var funcInfo = {
+				ident: $2,
+				formalParameters: null
+			};
+			
+			$$ = new ASTNode('FunctionDeclaration', funcInfo, $6);
+		}
+    |	FUNCTION IDENT '(' FormalParameterList ')' OPENBRACE FunctionBody CLOSEBRACE {
+			var funcInfo = {
+				ident: $2,
+				formalParameters: $4
+			};
+			
+			$$ = new ASTNode('FunctionDeclaration', funcInfo, $7);
+		}
     ;
 
 FunctionExpr
-    : FUNCTION '(' ')' OPENBRACE FunctionBody CLOSEBRACE
-    | FUNCTION '(' FormalParameterList ')' OPENBRACE FunctionBody CLOSEBRACE
-    | FUNCTION IDENT '(' ')' OPENBRACE FunctionBody CLOSEBRACE
-    | FUNCTION IDENT '(' FormalParameterList ')' OPENBRACE FunctionBody CLOSEBRACE
+    :	FUNCTION '(' ')' OPENBRACE FunctionBody CLOSEBRACE {
+			var funcInfo = {
+				name: null,
+				formalParameters: null
+			};
+			
+			$$ = new ASTNode('FunctionExpression', funcInfo, $5);
+		}
+    |	FUNCTION '(' FormalParameterList ')' OPENBRACE FunctionBody CLOSEBRACE {
+			var funcInfo = {
+				name: null,
+				formalParameters: $3
+			};
+			
+			$$ = new ASTNode('FunctionExpression', funcInfo, $6);
+		}
+    |	FUNCTION IDENT '(' ')' OPENBRACE FunctionBody CLOSEBRACE {
+			var funcInfo = {
+				name: $2,
+				formalParameters: null
+			};
+			
+			$$ = new ASTNode('FunctionExpression', funcInfo, $6);
+		}
+    |	FUNCTION IDENT '(' FormalParameterList ')' OPENBRACE FunctionBody CLOSEBRACE {
+			var funcInfo = {
+				name: $2,
+				formalParameters: $4
+			};
+			
+			$$ = new ASTNode('FunctionExpression', funcInfo, $7);
+		}
     ;
 
 FormalParameterList
-    : IDENT
-    | FormalParameterList ',' IDENT
+    :	IDENT {
+			$$ = [ $1 ];
+		}
+    |	FormalParameterList ',' IDENT {
+			if ($1 instanceof Array) {
+				$1.push($3);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $3 ];
+			}
+		}
     ;
 
 FunctionBody
     : 
-    | SourceElements
+    |	SourceElements
     ;
 
 /* Start rule */
 Program
     : 
-    | SourceElements
+    |	SourceElements {
+			console.log(JSON.stringify($1));
+		}
     ;
 
 SourceElements
-    : Statement
-    | SourceElements Statement
+    :	Statement {
+			$$ = [ $1 ];
+		}
+    |	SourceElements Statement {
+			if ($1 instanceof Array) {
+				$1.push($2);
+				$$ = $1;
+			}
+			else {
+				$$ = [ $1, $2 ];
+			}
+		}
     ;
 
