@@ -1,7 +1,12 @@
 /*
 References:
+http://www.opensource.apple.com/source/JavaScriptCore/JavaScriptCore-6531.21.9/parser/Grammar.y
 http://www.opensource.apple.com/source/JavaScriptCore/JavaScriptCore-6531.21.9/parser/Keywords.table
 http://www.opensource.apple.com/source/JavaScriptCore/JavaScriptCore-6531.21.9/parser/Lexer.cpp
+*/
+
+/*
+Lexer defintion, gleaned from Keywords.table and Lexer.cpp
 */
 
 %lex
@@ -105,6 +110,9 @@ http://www.opensource.apple.com/source/JavaScriptCore/JavaScriptCore-6531.21.9/p
 
 /lex
 
+/*
+The actual gramamr. NoBF = No Brace or Function
+*/
 
 %start Program
 
