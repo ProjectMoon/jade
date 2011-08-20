@@ -34,6 +34,8 @@ Lexer defintion, gleaned from Keywords.table and Lexer.cpp
 ":"			return ':'
 ";"			return ';'
 "."			return '.'
+\"			return '"'
+"'"			return '\''
 
 "break"		return 'BREAK' /* keywords */
 "case"		return 'CASE'
@@ -273,7 +275,7 @@ MemberExprNoBF
 		}
     |	MemberExprNoBF '.' IDENT {
 			$$ = new ASTNode('Property', $1, $3);
-		|
+		}
     |	NEW MemberExpr Arguments {
 			$$ = new ASTNode('New', $1, $3);
 		}
@@ -369,7 +371,7 @@ LeftHandSideExprNoBF
 PostfixExpr
     :	LeftHandSideExpr
     |	LeftHandSideExpr PLUSPLUS {
-			$$ = New ASTNode('++', null, $1);
+			$$ = new ASTNode('++', null, $1);
 		}
     |	LeftHandSideExpr MINUSMINUS {
 			$$ = new ASTNode('--', null, $1);
@@ -636,8 +638,10 @@ BitwiseANDExprNoBF
     ;
 
 BitwiseXORExpr
-    : BitwiseANDExpr
-    | BitwiseXORExpr '^' BitwiseANDExpr
+    :	BitwiseANDExpr
+    |	BitwiseXORExpr '^' BitwiseANDExpr {
+			$$ = new ASTNode('^', $1, $3);
+		}
     ;
 
 BitwiseXORExprNoIn
@@ -762,7 +766,7 @@ AssignmentExprNoBF
 /* take text directly because it's used in AssignmentExpr rules */
 AssignmentOperator
     :	'='
-    |	PLUSEQUAL
+    |	PLUSEQUAL { console.log('whoa bro'); }
     |	MINUSEQUAL
     |	MULTEQUAL
     |	DIVEQUAL
@@ -778,21 +782,21 @@ AssignmentOperator
 Expr
     :	AssignmentExpr
     |	Expr ',' AssignmentExpr {
-			SS = new ASTNode(',', $1, $3);
+			$$ = new ASTNode(',', $1, $3);
 		}
     ;
 
 ExprNoIn
     :	AssignmentExprNoIn
     |	ExprNoIn ',' AssignmentExprNoIn {
-			SS = new ASTNode(',', $1, $3);
+			$$= new ASTNode(',', $1, $3);
 		}
     ;
 
 ExprNoBF
     :	AssignmentExprNoBF
     |	ExprNoBF ',' AssignmentExpr {
-			SS = new ASTNode(',', $1, $3);
+			$$ = new ASTNode(',', $1, $3);
 		}
     ;
 
@@ -939,7 +943,7 @@ EmptyStatement
 
 ExprStatement
     :	ExprNoBF ';'
-    |	ExprNoBF error { console.log('error at ExprNoBF statement.');
+    |	ExprNoBF error { console.log('error at ExprNoBF statement.'); }
     ;
 
 IfStatement
@@ -971,7 +975,7 @@ IterationStatement
 			$$ = new ASTNode('For', forInfo, $9);
 		}
     |	FOR '(' VAR VariableDeclarationListNoIn ';' ExprOpt ';' ExprOpt ')' Statement {
-				var forInfo = {
+			var forInfo = {
 				start: $4,
 				end: $6,
 				step: $8
@@ -1145,21 +1149,21 @@ ThrowStatement
 
 TryStatement
     :	TRY Block FINALLY Block {
-			$$ = new ASTNode('TryCatch', { block: $2, finally: $4 }, null);
+			$$ = new ASTNode('TryCatch', { block: $2, finallyBlock: $4 }, null);
 		}
     |	TRY Block CATCH '(' IDENT ')' Block {
-			var catch = {
-				ident: $5
+			var catchInfo = {
+				ident: $5,
 				block: $7
 			};
-			$$ = new ASTNode('TryCatch', { block: $2, catch: catch }, null);
+			$$ = new ASTNode('TryCatch', { block: $2, catchBlock: catchInfo }, null);
 		}
     |	TRY Block CATCH '(' IDENT ')' Block FINALLY Block {
-			var catch = {
-				ident: $5
+			var catchInfo = {
+				ident: $5,
 				block: $7
 			};
-			$$ = new ASTNode('TryCatch', { block: $2, catch: catch, finally: $9 }, null);
+			$$ = new ASTNode('TryCatch', { block: $2, catchBlock: catchInfo, finallyBlock: $9 }, null);
 		}
     ;
 
@@ -1250,7 +1254,7 @@ FunctionBody
 Program
     : 
     |	SourceElements {
-			console.log(JSON.stringify($1));
+			console.log(JSON.stringify($1, null, 2));
 		}
     ;
 
@@ -1268,4 +1272,3 @@ SourceElements
 			}
 		}
     ;
-
