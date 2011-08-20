@@ -131,6 +131,7 @@ Literal
     | DIVEQUAL
     ;
 
+/* JSON/javascript object literals */
 Property
     : IDENT ':' AssignmentExpr
     | STRING ':' AssignmentExpr
@@ -139,11 +140,13 @@ Property
     | IDENT IDENT '(' FormalParameterList ')' OPENBRACE FunctionBody CLOSEBRACE
     ;
 
+/* JSON/javascript object literals */
 PropertyList
     : Property
     | PropertyList ',' Property
     ;
 
+/* JSON/javascript object literals, or other stuff */
 PrimaryExpr
     : PrimaryExprNoBrace
     | OPENBRACE CLOSEBRACE
@@ -159,22 +162,26 @@ PrimaryExprNoBrace
     | '(' Expr ')'
     ;
 
+/* Array literals */
 ArrayLiteral
     : '[' ElisionOpt ']'
     | '[' ElementList ']'
     | '[' ElementList ',' ElisionOpt ']'
     ;
 
+/* Array literals */
 ElementList
     : ElisionOpt AssignmentExpr
     | ElementList ',' ElisionOpt AssignmentExpr
     ;
 
+/* Array literals */
 ElisionOpt
     : 
     | Elision
     ;
 
+/* Array literals */
 Elision
     : ','
     | Elision ','
@@ -701,6 +708,7 @@ FunctionBody
     | SourceElements
     ;
 
+/* Start rule */
 Program
     : 
     | SourceElements
