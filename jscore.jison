@@ -111,7 +111,7 @@ Lexer defintion, gleaned from Keywords.table and Lexer.cpp
 /lex
 
 /*
-The actual gramamr. NoBF = No Brace or Function
+The actual grammar. NoBF = No Brace or Function
 */
 
 %start Program
