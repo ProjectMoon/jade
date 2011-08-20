@@ -1,5 +1,5 @@
-var jadeParser = require('./jade-parser');
-var ASTNode = require('./jade-parser').ASTNode;
+var jadeparser = require('./jadeparser');
+var ASTNode = require('./jadeparser').ASTNode;
 
 //Stuff to deal with the asynchronous wrapping.
 //asyncLevel tells us how many nested levels in we are.
@@ -24,13 +24,25 @@ function handleAsyncWrapping() {
 /**** Define how to handle the AST ****/
 
 var ASTParser = {
-	"Expression": function(left, right) {
-		if (left != null) {
-			return left;
+	"DirectCopy": function(text) {
+		return text;
+	},
+	
+	"Block": function(block) {
+		if (block != null) {
+			return '{' + handle(block) + '}';
 		}
 		else {
-			return '';
+			return '{}';
 		}
+	},
+	
+	"VariableDeclaration": function(left, right) {
+		return 'var ' + handle(left, ',', true);
+	},
+	
+	"=": function(left, right) {
+		return left + '=' + right;
 	},
 	
 	"+": function(left, right) {
@@ -80,6 +92,16 @@ var ASTParser = {
 		}
 	},
 	
+	"FunctionArguments": function(args) {
+		if (args != null) {
+			args = handle(args, ',', true);
+			return args;
+		}
+		else {
+			return '';
+		}
+	},
+	
 	"AsyncCall": function(left, right) {
 		asyncLevel++;
 		if (right != null) {
@@ -96,9 +118,9 @@ var ASTParser = {
 			return handleAsyncWrapping();
 	},
 	
-	"If": function(left, right) {
-		right += handleAsyncWrapping();
-		return 'if (' + left + ') {' + right + '}';
+	"If": function(condition, block) {
+		block += handleAsyncWrapping();
+		return 'if(' + condition + ')' + block;
 	},
 	
 	"InitVariable": function(left, right) {
@@ -191,18 +213,18 @@ var ASTParser = {
 
 /**** This is where compilation takes place ****/
 
-function handle(node) {
+function handle(node, listSeparator, removeLast) {
 	//handling an individual node of the AST tree.
 	if (node instanceof ASTNode) {
 		var code = '';
 		var handler = ASTParser[node.root];
 		
 		if (typeof handler !== 'undefined') {
-			if (node.left != null && (node.left.hasOwnProperty('root') || node.left instanceof Array)) {
+			if (node.left != null && node.left.hasOwnProperty('root')) {
 				node.left = handle(node.left);
 			}
 
-			if (node.right != null && (node.right.hasOwnProperty('root') || node.right instanceof Array)) {
+			if (node.right != null && node.right.hasOwnProperty('root')) {
 				node.right = handle(node.right);
 			}
 						
@@ -215,10 +237,16 @@ function handle(node) {
 	}
 	//the node is a list of AST nodes, so put a ; after each one.
 	else if (node instanceof Array) {
+		var sep = listSeparator || ';';
+		var remLast = removeLast || false;
 		var code = '';
 		node.forEach(function(entry) {
-			code += handle(entry) + ';';
+			code += handle(entry) + sep;
 		});
+		
+		if (remLast) {
+			code = code.substring(0, code.length - 1);
+		}
 		return code;
 	}
 	else {
@@ -227,7 +255,8 @@ function handle(node) {
 }
 
 module.exports.compile = function(text) {
-	jadeParser.parser.parse(text);
-	var program = jadeParser.parseResult;
+	jadeparser.parser.parse(text);
+	var program = jadeparser.parseResult;
+	console.log(JSON.stringify(program, null, 2));
 	return handle(program) + handleAsyncWrapping();
 }
