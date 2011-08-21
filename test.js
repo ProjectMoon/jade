@@ -1,4 +1,4 @@
 var compiler = require('./compiler');
 
-var program = compiler.compile('<x, y> = a!();');
+var program = compiler.compile('var x = { a: 1, b: function() {} };');
 console.log(program);
