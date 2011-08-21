@@ -1,4 +1,4 @@
 var compiler = require('./compiler');
 
-var program = compiler.compile('for (c in x!(a)) { console.log(c); }');
+var program = compiler.compile('while (c < 10) { }');
 console.log(program);

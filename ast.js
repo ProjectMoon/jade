@@ -389,6 +389,10 @@ module.exports.getAST = function() {
 			else {
 				return inExpr + 'for(var ' + info.each + ' in arguments[0])' + body;
 			}
+		},
+		
+		"While": function(expr, body) {
+			return 'while(' + expr + ')' + body;
 		}
 	};
 	
