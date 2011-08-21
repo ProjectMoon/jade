@@ -392,7 +392,12 @@ module.exports.getAST = function() {
 		},
 		
 		"While": function(expr, body) {
-			return 'while(' + expr + ')' + body;
+			if (getAsyncLevel() === 0) {
+				return 'while(' + expr + ')' + body;
+			}
+			else {
+				
+			}
 		}
 	};
 	
