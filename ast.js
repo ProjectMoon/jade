@@ -366,7 +366,30 @@ module.exports.getAST = function() {
 			else {
 				return start + 'for(;' + end + step + ')' + body;
 			}
-		}		
+		},
+		
+		"ForIn": function(info, body) {
+			var each = handle(info.each, '');
+			var inExpr = handle(info.inExpr, '');
+			
+			if (getAsyncLevel() === 0) {
+				return 'for(var ' + info.each + ' in ' + inExpr + ')' + body;
+			}
+			else {
+				return inExpr + 'for(' + each + ' in arguments[0])' + body;
+			}
+		},
+		
+		"ForInScoped": function(info, body) {
+			var inExpr = handle(info.inExpr, '');
+			
+			if (getAsyncLevel() === 0) {
+				return 'for(var ' + info.each + ' in ' + inExpr + ')' + body;
+			}
+			else {
+				return inExpr + 'for(var ' + info.each + ' in arguments[0])' + body;
+			}
+		}
 	};
 	
 	return ASTParser;
